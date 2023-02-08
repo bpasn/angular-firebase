@@ -9,6 +9,8 @@ import { Router } from '@angular/router';
 import { ErrorHandle } from '../interface/error-handle';
 import { User } from '../interface/user';
 import { ErrorMap } from '@firebase/util';
+import { AngularFireStorage } from '@angular/fire/compat/storage';
+import { UserModel } from 'src/app/models/user.model';
 
 // import { JwtHelperService } from '@auth0/angular-jwt';
 
@@ -17,7 +19,7 @@ import { ErrorMap } from '@firebase/util';
   providedIn: 'root'
 })
 export class AuthService {
-  userData?: User;
+  userData?: any;
   errorHandle: ErrorHandle = {};
 
   constructor(
@@ -56,16 +58,25 @@ export class AuthService {
   // }
 
   SignIn({ email, password }: { email: string, password: string }): Promise<void | ErrorHandle> {
-    this.afAuth.signOut()
+    // this.afAuth.signOut()
     return new Promise((res, rej) => {
       this.afAuth.signInWithEmailAndPassword(email, password)
         .then((result) => {
-          this.SetUserData(result.user)
-          this.afAuth.authState.subscribe(user => {
-            if (user) {
+          // this.SetUserData(result.user)
+          this.afs.collection('users').valueChanges({ idField: result.user?.uid }).subscribe((user: any) => {
+
+            if (user[0].isAdmin) {
+              this.router.navigate(['admin'])
+            } else {
               this.router.navigate([''])
             }
           })
+
+          // this.afAuth.authState.subscribe(user => {
+          //   if (user) {
+          //     this.router.navigate([''])
+          //   }
+          // })
         })
         .catch((error) => {
 
@@ -79,13 +90,17 @@ export class AuthService {
     })
   }
 
-  SignUp({ email, password }: { email: string, password: string }): Promise<User | ErrorHandle | undefined> {
+  SignUp({ email, password, isAdmin }: { email: string, password: string, isAdmin: boolean }): Promise<User | ErrorHandle | undefined> {
     return new Promise((res, rej) => {
       this.afAuth.createUserWithEmailAndPassword(email, password)
         .then(result => {
           // this.SendVeridicationMail()
-          this.SetUserData(result.user)
-          this.router.navigate([''])
+          this.SetUserData(result.user, isAdmin)
+          // this.router.navigate([])
+          const userRef: AngularFirestoreDocument<any> = this.afs.doc(
+            `users/${result.user?.uid}`
+          )
+          console.log(userRef)
         }).catch((error) => {
           rej({
             message: error.message,
@@ -104,7 +119,8 @@ export class AuthService {
       this.router.navigate(['verification-email'])
     })
   }
-  SetUserData(user: any) {
+  SetUserData(user: any, isAdmin: boolean = false) {
+    console.log(user)
     const userRef: AngularFirestoreDocument<any> = this.afs.doc(
       `users/${user.uid}`
     )
@@ -113,9 +129,10 @@ export class AuthService {
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      isAdmin: isAdmin
     };
-    console.log(userData)
+    this.userData = userData
     return userRef.set(userData, {
       merge: true
     })
@@ -126,6 +143,16 @@ export class AuthService {
     return this.afAuth.signOut().then(() => {
       localStorage.removeItem('user');
       this.router.navigate(['login'])
+    })
+  }
+
+
+  CreateCollection(user: UserModel): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.afs.collection('users')
+        .add(user)
+        .then(() => resolve())
+        .catch((error => reject(error)))
     })
   }
 }

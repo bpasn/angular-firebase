@@ -1,3 +1,4 @@
+import { UserModel } from './../../models/user.model';
 import { ErrorHandering } from 'src/app/models/error';
 import { AuthService } from 'src/app/shared/services/service/auth.service';
 import { ErrorHandle } from './../../shared/services/interface/error-handle';
@@ -20,7 +21,8 @@ export class LoginComponent {
   constructor(public auth: AuthService, public fb: FormBuilder) {
     this.form = this.fb.group({
       email: '',
-      password: ''
+      password: '',
+      isAdmin: false,
     })
   }
 
