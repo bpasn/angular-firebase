@@ -18,10 +18,7 @@ export class RegisterComponent {
     this.form = this.fb.group<UserModel>({
       uid: '',
       email: '',
-      password: '',
       isAdmin: false,
-      created_at: new Date(),
-      updated_at: new Date()
     })
   }
 

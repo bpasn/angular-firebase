@@ -23,6 +23,6 @@ export class NavBarComponent {
     this.auth.SignOut()
   }
   toggleHandle() {
-    console.log(this.toggle = !this.toggle)
+    this.toggle = !this.toggle
   }
 }

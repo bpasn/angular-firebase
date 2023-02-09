@@ -3,7 +3,9 @@ import * as auth from 'firebase/auth';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import {
   AngularFirestore,
+  AngularFirestoreCollection,
   AngularFirestoreDocument,
+  DocumentSnapshot,
 } from '@angular/fire/compat/firestore';
 import { Router } from '@angular/router';
 import { ErrorHandle } from '../interface/error-handle';
@@ -29,7 +31,6 @@ export class AuthService {
     private ngZone: NgZone,
     // private jwt: JwtHelperService
   ) {
-
     this.afAuth.authState.subscribe(user => {
       if (user) {
         this.userData = user;
@@ -62,15 +63,22 @@ export class AuthService {
     return new Promise((res, rej) => {
       this.afAuth.signInWithEmailAndPassword(email, password)
         .then((result) => {
-          // this.SetUserData(result.user)
-          this.afs.collection('users').valueChanges({ idField: result.user?.uid }).subscribe((user: any) => {
-
-            if (user[0].isAdmin) {
+          this.afs.doc(`users/${result.user?.uid}`).snapshotChanges().subscribe(user => {
+            let users: any = user.payload.data();
+            if (users.isAdmin) {
               this.router.navigate(['admin'])
             } else {
               this.router.navigate([''])
             }
           })
+          // this.afs.collection('users').doc().get().subscribe((data) => {
+          //   if (data.data()) {
+          //     let u = data.data.name
+          //     this.router.navigate(['admin'])
+          //   } else {
+          //     this.router.navigate([''])
+          //   }
+          // })
 
           // this.afAuth.authState.subscribe(user => {
           //   if (user) {
@@ -154,5 +162,9 @@ export class AuthService {
         .then(() => resolve())
         .catch((error => reject(error)))
     })
+  }
+
+  GetUser(uid: string = '') {
+    return this.afs.collection('/users').doc(uid).snapshotChanges()
   }
 }
